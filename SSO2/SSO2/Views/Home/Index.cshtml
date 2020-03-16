@@ -1,0 +1,133 @@
+﻿@addTagHelper *, SSO2
+@{
+    ViewData["Title"] = "Home Page";
+}
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>OpenStreetMap, Google Maps alternative using Leaflet</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css"
+          integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+          crossorigin="" />
+    <style>
+        html, body {
+            text-align: center;
+            height: 100%;
+        }
+
+        #map {
+            /*height: 500px;
+            width: 700px;*/
+            height: 70vh;
+            max-width: 100%;
+            /*margin: auto;*/
+        }
+    </style>
+</head>
+<body>
+    <div class="text-center">
+        <h1 class="display-4">Welcome</h1>
+        <a class="btn btn-success" href="@Url.Action("Index", "Accounts")">Edit Account</a>
+        <a class="btn btn-success" href="@Url.Action("Index", "Places")">Edit Place</a>
+        <vc:place></vc:place>
+        <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    </div>
+    <div id="place"></div>
+    <div id="map" style="width:100%"></div>
+    <span id="markerInfos"></span>
+    <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"
+            integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew=="
+            crossorigin=""></script>
+</body>
+</html>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var DataItem = @Html.Raw(ViewBag.DataItem);
+        var markersLatLng = [];
+        var markersPopup = [];
+        DataItem.forEach(function (item, index, array) {
+            //$("#place").append("<a href='/Places/Details/" + (index + 1) + "'>" + item.Name + "</a>" + "</br>");
+            $("#place").append("<a href='javascript:void(0)' id=position" + index + ">" + item.Name + "</a>" + "</br>");
+            markersLatLng.push([item.Latitude, item.Longitude]);
+            markersPopup.push("地點: " + item.Name + "</br>" + "地址: " + item.Address + "</br>" + "郵遞區號: " + item.Postcode + "</br>" + "<a href='/Places/Details/" + (index + 1) + "'>詳細資料</a>");
+        });
+        //console.log(markersLatLng);
+        //$("#place").append(DataItem[0].Name + "/" + DataItem[0].Address);
+        // The DOMContentLoaded event fires when the page is ready (like $(document).ready() in jQuery)
+        var map = createMap('map', 25.033408, 121.564099, 11);
+        markersLatLng.forEach(function (item, index) {
+            
+        });
+        // map is the id of our div element and the other options are
+        // lattitude, longitude and zoom
+        //markersLatLng = [
+        //    [25.063128, 121.515020],
+        //    [25.0503431, 121.536144],
+        //    [24.998364, 121.581020]
+        //];
+        var popup = L.popup(); // Create a popup instance
+        // NB: The popup should be created outside the for loop, we only need 1 popup
+
+        map.on('click', function (e) {
+            // When the map is clicked, this function is executed
+            // The parameter 'e' gives us informations about the click
+            popup.setLatLng(e.latlng)
+                .setContent("What's here: " + e.latlng.toString())
+                .openOn(map);
+            // We set the popup's position to where the user clicked
+            // Then set its content and open it on our map
+        });
+        var markerInfos = document.getElementById("markerInfos");
+        // This function simply sets the text of our span
+        function onMarkerClick(e) {
+            //markerInfos.textContent = "Marker at " + e.latlng.toString() + " clicked!";
+        }
+
+        markersLatLng.forEach(function (latLng, index) {
+            var marker = addMarker(map, latLng, onMarkerClick, markersPopup[index]);
+            // Now we use the onClick parameter to pass our function
+            $("#position" + index).click(function () {
+                centerLeafletMapOnMarker(map, latLng);
+                marker.openPopup();
+            });
+        });
+    });
+
+    function createMap(elemId, centerLat, centerLng, zoom) {
+        var map = new L.Map(elemId);
+
+        // Data provider
+        var osmUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+        var osmAttrib = 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors';
+
+        // Layer
+        var osmLayer = new L.TileLayer(osmUrl, {
+            minZoom: 4,
+            maxZoom: 20,
+            attribution: osmAttrib
+        });
+
+        // Map
+        map.setView(new L.LatLng(centerLat, centerLng), zoom);
+        map.addLayer(osmLayer);
+        return map;
+    }
+
+    function addMarker(map, latLng, onClick, MarkerPopup) {
+        var marker = L.marker(latLng).addTo(map);
+        marker.bindPopup(MarkerPopup);
+        if (onClick !== null) {
+            marker.on('click', onClick);
+        }
+        return marker;
+    }
+
+    function centerLeafletMapOnMarker(map, marker) {
+        var latLngs = [marker[0], marker[1]];
+        console.log(latLngs);
+        //var markerBounds = L.latLngBounds(latLngs);
+        map.fitBounds([latLngs], {maxZoom: 16});
+    }
+</script>
